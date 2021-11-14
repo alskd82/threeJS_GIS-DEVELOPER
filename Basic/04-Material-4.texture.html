@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title> 매터리얼 - 4.texture</title>
+    <style>
+        *{ outline: none; margin: 0; }
+        body{ overflow: hidden;}
+        #webgl-container{
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div id="webgl-container"></div>
+
+    <!-- <script src="../assets/three.min.js"></script> -->
+    <!-- <script src="../assets/js/OrbitControls.js"></script> -->
+    <script type="module">
+import * as THREE from '../assets/three.module.min.js';
+import {OrbitControls} from '../assets/jsm/OrbitControls.js' // 마우스 컨트롤 가능
+import {VertexNormalsHelper} from '../assets/jsm/helpers/VertexNormalsHelper.js'
+class App {
+    constructor(){
+        this.divContainer = document.querySelector("#webgl-container");
+        this.renderer = new THREE.WebGLRenderer({ antialias: true });
+        this.renderer.setPixelRatio( window.devicePixelRatio );
+        this.divContainer.appendChild( this.renderer.domElement );
+
+        this.scene = new THREE.Scene();
+
+        this._setupCamera();
+        this._setupLight();
+        this._setupModel();
+        this._setupControls();
+
+        window.onresize = this.resize.bind(this);
+        this.resize();
+
+        requestAnimationFrame(this.render.bind(this))
+    }
+
+    resize(){
+        const w = this.divContainer.clientWidth;
+        const h = this.divContainer.clientHeight;
+
+        this.camera.aspect = w / h;
+        this.camera.updateProjectionMatrix();
+
+        this.renderer.setSize(w, h)
+    }
+
+    render(time){
+        this.renderer.render( this.scene, this.camera )
+        this.update(time)
+        requestAnimationFrame(this.render.bind(this));
+    }
+
+    update(time){
+        time *= 0.001; // second
+
+    }
+
+    _setupModel(){        
+        const map = new THREE.TextureLoader().load('../assets/img/glass/Glass_Window_002_basecolor.jpg')
+        const mapAO = new THREE.TextureLoader().load('../assets/img/glass/Glass_Window_002_ambientOcclusion.jpg')
+        const mapHeight = new THREE.TextureLoader().load('../assets/img/glass/Glass_Window_002_height.png')
+        const mapNormal = new THREE.TextureLoader().load('../assets/img/glass/Glass_Window_002_normal.jpg')
+        const mapRoughness = new THREE.TextureLoader().load('../assets/img/glass/Glass_Window_002_roughness.jpg')
+        const mapMetalic = new THREE.TextureLoader().load('../assets/img/glass/Glass_Window_002_metallic.jpg')
+        const mapAlpha = new THREE.TextureLoader().load('../assets/img/glass/Glass_Window_002_opacity.jpg')
+        const mapLight = new THREE.TextureLoader().load('../assets/img/glass/light.png');
+
+        const material = new THREE.MeshStandardMaterial({ 
+            map: map,
+
+            /*
+            노말맵의 방향을 알려주는 헬퍼 사용하여 각 폴리곤의 노멀방향 체크 가능 
+            import {VertexNormalsHelper} from './assets/jsm/helpers/VertexNormalsHelper.js'
+            const helper = new VertexNormalsHelper( 메쉬이름 , 0.1, 0x00ff00 );
+            */
+            normalMap: mapNormal,
+
+            /*
+                displacementMap 은 지오메트리의 세그먼트 값이 높아야 효율적
+                displacementScale 로 수치 조절
+                displacementBias 은 면이 떨어져 나가는 현상이 발생하는 것을 잡아 준다
+            */
+            displacementMap: mapHeight,
+            displacementScale: 0.2,
+            displacementBias: -0.15,
+
+            /*
+                AO 적용을 위해서는 2가지 조건이 필요하다
+                1. Ambient Light 가 있어야 함.
+                    const ambientLight = new THREE.AmbientLight(0xffffff , 0.2)
+                    this.scene.add(ambientLight);
+                2. Geometry 에 uv 데이터 지정이 필요.
+                    메쉬이름.geometry.attributes.uv2 = 메쉬이름.geometry.attributes.uv;
+            */
+            aoMap: mapAO,
+            aoMapIntensity: 2, 
+
+            /*
+                표면의 거칠기 
+                roughness 의 기본 값은 1 
+            */
+            roughnessMap: mapRoughness,
+            roughness: 1, 
+
+            /*
+                금속재질 효과
+                metalness 의 기본 값 0
+            */
+            metalnessMap: mapMetalic,
+            metalness: 0,
+
+            /*
+                알파 맵 적용을 위해서는 [transparent: true] 설정이 필요
+                메쉬의 안쪽을 통과하여 반대편을 보고 싶다면 [side: THREE.DoubleSide] 로 설정
+            */
+            transparent: true,
+            alphaMap: mapAlpha, 
+            side: THREE.DoubleSide,
+
+            /*
+                lightMap : 자체 발광하는 맵 (Ambient Light 느낌 )
+                lightMapIntensicty 의 기본 값은 1
+            */
+            lightMap: mapLight,  // 지오메트리에 uv 데이터 지정이 필요하다
+            lightMapIntensicty: 2, // 기본 1
+
+        });
+
+        const box = new THREE.Mesh(new THREE.BoxGeometry(1,1,1,256,256,256), material);
+        box.position.set(-1,0,0);
+        box.geometry.attributes.uv2 = box.geometry.attributes.uv;
+        this.scene.add( box );
+
+        // const helper = new VertexNormalsHelper( box, 0.1, 0x00ff00 ); // 노멀 방향 보기 
+        // this.scene.add(helper)
+
+        const sphere = new THREE.Mesh(new THREE.SphereGeometry(0.7,512,512), material);
+        sphere.position.set(1,0,0);
+        sphere.geometry.attributes.uv2 = sphere.geometry.attributes.uv;
+        this.scene.add( sphere );
+
+        // const sphereHelper = new VertexNormalsHelper(sphere, 0.1, 0xffff00)
+        // this.scene.add(sphereHelper)
+    }
+
+
+    _setupCamera(){
+        const w = this.divContainer.clientWidth;
+        const h = this.divContainer.clientHeight;
+        this.camera = new THREE.PerspectiveCamera( 75,  w / h,  0.1, 100 );
+        this.camera.position.z = 3;
+
+        this.scene.add(this.camera)
+    }
+
+    _setupLight(){
+        const ambientLight = new THREE.AmbientLight(0xffffff , 0.2)
+        this.scene.add(ambientLight);
+
+        const color = 0xffffff; // 광원 색상
+        const intensity = 1;    // 광원 세기
+        const light = new THREE.DirectionalLight(color, intensity);
+        light.position.set(-1, 2, 4) // 광원 위치
+        // this.scene.add(light);
+        this.camera.add(light); // 광원이 카메라에 따라 움직이게 설정 
+    }
+
+    _setupControls(){
+        new OrbitControls(this.camera, this.divContainer)
+    }
+}
+
+
+window.onload = () => new App();
+        
+        
+        
+        </script>
+</body>
+</html>

@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title> MeshStandard - MeshPhysical </title>
+<style>
+    *{ outline: none; margin: 0; }
+    body{ overflow: hidden;}
+    #webgl-container{
+        position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    }
+</style>
+</head>
+<body>
+    <div id="webgl-container"></div>
+
+<!-- <script src="./assets/three.min.js"></script> -->
+<script type="module">
+import * as THREE from '../assets/three.module.min.js';
+import {OrbitControls} from '../assets/jsm/OrbitControls.js'
+class App{
+    constructor(){
+        this.divContainer = document.querySelector("#webgl-container");
+        this.renderer = new THREE.WebGLRenderer({ antialias: true });
+        this.renderer.setPixelRatio( window.devicePixelRatio );
+        this.divContainer.appendChild( this.renderer.domElement );
+
+        this.scene = new THREE.Scene();
+
+        this._setupCamera();
+        this._setupLight();
+        this._setupModel_Standard();
+        this._setupModel_Physical();
+        this._setupControls();
+
+        window.onresize = this.resize.bind(this);
+        this.resize()
+
+        requestAnimationFrame(this.render.bind(this));
+    }
+
+    resize(){
+        const w = this.divContainer.clientWidth;
+        const h = this.divContainer.clientHeight;
+
+        this.camera.aspect = w / h;
+        this.camera.updateProjectionMatrix();
+
+        this.renderer.setSize(w, h)
+    }
+
+    render(time){
+        this.renderer.render( this.scene, this.camera )
+        this.update(time)
+        requestAnimationFrame(this.render.bind(this));
+    }
+
+    update(time){
+        time *= 0.001 // ms 를 s 단위로 변경
+    }
+
+    _setupModel_Standard(){
+        const material = new THREE.MeshStandardMaterial({
+            /* 모든 매터리얼의 공통 옵션 값 */
+            visible: true,
+            transparent: false, //  opacity 를 사용할지 말지의 여부 
+            opacity: 1,         //  transparent: true 로 설정해야만 작동 
+            depthTest: true,    //  Depth Buffer 의 표현 - 멀리 있는 것과 가까이 있는 것의 차이를 검사할 것인지 여부 
+            depthWrite: true,   //  Depth Buffer 의 표현 - 멀리 있는 것과 가까이 있는 것의 차이를 Depth Buffer 에 기록할 것인지 여부 
+            side: THREE.FrontSide, // 메쉬의 겉면 만 , 속면만 렌더링 할 것인지 THREE.BackSide, 컽과 속모두 렌더  THREE.DoubleSide
+            /* -------------------- */
+
+            color: 0xff0000,    // 재질의 색상
+            emissive: 0x000000, // 재질에서 자체적으로 발광하는 색
+            roughness: 0,       // 표면 거칠기, 0은 거울과 같은 형태
+            metalness: 0,       // 금속성, 0은 돌처럼 금속성이 아예 없는 상태 - roughness: 1이면 금속느낌을 표현하기 어려움 
+            flatShading: false,  // 메쉬를 평평하게 렌더링할지 여부 
+            wireframe: false,   // 와이어프레임 렌더링 가능
+        });
+
+        const box = new THREE.Mesh(new THREE.BoxGeometry(1,1,1), material);
+        box.position.set(-1,1,0);
+        this.scene.add( box );
+
+        const sphere = new THREE.Mesh(new THREE.SphereGeometry(0.7,32,32), material);
+        sphere.position.set(1,1,0);
+        this.scene.add( sphere );
+    }
+
+    _setupModel_Physical(){
+        const material = new THREE.MeshPhysicalMaterial({ // MeshStandardMaterial 을 상속받아 좀더 물리적으로 발전 된 매터리얼 - 재질표면에 코팅효과나 유리같은 재질 표현 가능
+            /* 모든 매터리얼의 공통 옵션 값 */
+            visible: true,
+            transparent: false, //  opacity 를 사용할지 말지의 여부 
+            opacity: 1,         //  transparent: true 로 설정해야만 작동 
+            depthTest: true,    //  Depth Buffer 의 표현 - 멀리 있는 것과 가까이 있는 것의 차이를 검사할 것인지 여부 
+            depthWrite: true,   //  Depth Buffer 의 표현 - 멀리 있는 것과 가까이 있는 것의 차이를 Depth Buffer 에 기록할 것인지 여부 
+            side: THREE.FrontSide, // 메쉬의 겉면 만 , 속면만 렌더링 할 것인지 THREE.BackSide, 컽과 속모두 렌더  THREE.DoubleSide
+            /* -------------------- */
+
+            color: 0xff0000,    // 재질의 색상
+            emissive: 0x000000, // 재질에서 자체적으로 발광하는 색
+            roughness: 1,       // 표면 거칠기, 0은 거울과 같은 형태
+            metalness: 0,       // 금속성, 0은 돌처럼 금속성이 아예 없는 상태 - roughness: 1이면 금속느낌을 표현하기 어려움 
+            clearcoat: 1,       // 메쉬 표면에 코팅정도 
+            clearcoatRoughness: 0, // 코딩에 대한 거칠기  
+            flatShading: false,  // 메쉬를 평평하게 렌더링할지 여부 
+            wireframe: false,   // 와이어프레임 렌더링 가능
+        });
+
+        const box = new THREE.Mesh(new THREE.BoxGeometry(1,1,1), material);
+        box.position.set(-1,-1,0);
+        this.scene.add( box );
+
+        const sphere = new THREE.Mesh(new THREE.SphereGeometry(0.7,32,32), material);
+        sphere.position.set(1,-1,0);
+        this.scene.add( sphere );
+    }
+
+
+    _setupCamera(){
+        const w = this.divContainer.clientWidth;
+        const h = this.divContainer.clientHeight;
+        this.camera = new THREE.PerspectiveCamera( 75,  w / h,  0.1, 100 );
+        this.camera.position.z = 5;
+
+        this.scene.add(this.camera);
+    }
+
+    _setupLight(){
+        const color = 0xffffff; // 광원 색상
+        const intensity = 1;    // 광원 세기
+        const light = new THREE.DirectionalLight(color, intensity);
+        light.position.set(-1, 2, 4) // 광원 위치
+        // this.scene.add(light);
+        this.camera.add(light);
+    }
+
+    _setupControls(){
+        new OrbitControls(this.camera, this.divContainer)
+    }
+}
+
+window.onload = function(){
+    new App()
+}
+</script>
+
+</body>
+</html>

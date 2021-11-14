@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title> Camera </title>
+    <style>
+        *{ outline: none; margin: 0; }
+        body{ overflow: hidden;}
+        #webgl-container{
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div id="webgl-container"></div>
+    <script type="module">
+import * as THREE from '../assets/three.module.min.js';
+import {OrbitControls} from '../assets/jsm/OrbitControls.js';
+import {RectAreaLightUniformsLib} from '../assets/jsm/lights/RectAreaLightUniformsLib.js';
+import {RectAreaLightHelper} from '../assets/jsm/helpers/RectAreaLightHelper.js';
+class App{
+    constructor(){
+        this.divContainer = document.querySelector("#webgl-container");
+        this.renderer = new THREE.WebGLRenderer({ antialias: true });
+        this.renderer.setPixelRatio( window.devicePixelRatio );
+        this.divContainer.appendChild( this.renderer.domElement );
+
+        this.scene = new THREE.Scene();
+
+        this._setupCamera();
+        this._setupLight();
+        this._setupModel();
+        this._setupControls();
+
+        window.onresize = this.resize.bind(this);
+        this.resize()
+
+        requestAnimationFrame(this.render.bind(this));
+    }
+
+    resize(){
+        const w = this.divContainer.clientWidth;
+        const h = this.divContainer.clientHeight;
+        const aspect = w / h;
+
+        if(this.camera instanceof THREE.PerspectiveCamera){
+            this.camera.aspect = aspect;
+        } else {
+            this.camera.left = -1 * aspect; // xLeft
+            this.camera.right = 1 * aspect; // xRight
+        }
+        this.camera.updateProjectionMatrix();
+
+        this.renderer.setSize(w, h)
+    }
+
+    render(time){
+        this.renderer.render( this.scene, this.camera )
+        this.update(time)
+        requestAnimationFrame(this.render.bind(this));
+    }
+
+    update(time){
+        time *= 0.001 // ms 를 s 단위로 변경
+
+        const smallSphereNull = this.scene.getObjectByName('smallSphereNull')
+        if(smallSphereNull){
+            smallSphereNull.rotation.y = THREE.Math.degToRad(time * 50);
+            const smallSphere = smallSphereNull.children[0];
+            /* 라이트의 타겟이 작은 구를 따라가게 설정 */
+            if(this.directionalLight && this.directionalLight.target ){
+                smallSphere.getWorldPosition(this.directionalLight.target.position);
+                if(this.directionLgihtHelper) this.directionLgihtHelper.update();
+            }
+            /* 포인트 라이트의 위치가 구를 따라가게 설정 */
+            if(this.pointLight){
+                smallSphere.getWorldPosition(this.pointLight.position);
+                if(this.pointLightHelper) this.pointLightHelper.update();
+            }
+
+            /* 스팟 라이트의 타겟 위치가 구를 따라가게 설정 */
+            if(this.spotLight && this.spotLight.target){
+                smallSphere.getWorldPosition(this.spotLight.target.position);
+                if(this.spotLightHelper) this.spotLightHelper.update();
+            }
+
+            /* 카메라가 구를 따라가게 설정 */
+            smallSphere.getWorldPosition(this.camera.position);
+            const cameraTargetNull = this.scene.getObjectByName('cameraTargetNull');
+            if(cameraTargetNull){
+                cameraTargetNull.rotation.y = THREE.Math.degToRad(time * 50 + 10)
+                /* 카메라타겟널의 첫번째 자식의 위치를 글로벌 위치로 얻어내기 */
+                const cameraTarget =  cameraTargetNull.children[0];
+                const pt = new THREE.Vector3();
+                cameraTarget.getWorldPosition(pt)
+                /* 카메라타겟의 글로벌 위치를 카메라가 바라보게 설정 */
+                this.camera.lookAt(pt);
+            }
+        }
+
+    }
+
+    _setupModel(){
+            /* ground */
+        const groundGeo = new THREE.PlaneGeometry(10,10);
+        const groundMaterial = new THREE.MeshStandardMaterial({ color: "#2c3e50", roughness: .5, matalness: .5, side: THREE.DoubleSide });
+        const ground = new THREE.Mesh( groundGeo, groundMaterial);
+        ground.rotation.x = THREE.Math.degToRad(-90)
+        this.scene.add(ground)
+
+        /* bigSphere*/
+        const bigSphereGeo = new THREE.SphereGeometry(1.5,64,64,0,Math.PI);
+        const bigSphereMaterial = new THREE.MeshStandardMaterial({ color: 'white', roughness: 0.1, metalness: 0.2 });
+        const bigSphere = new THREE.Mesh(bigSphereGeo, bigSphereMaterial);
+        bigSphere.rotation.x = THREE.Math.degToRad(-90)
+        this.scene.add(bigSphere)
+
+        /* torus */
+        const torusGeo = new THREE.TorusGeometry(.4,.1,32,32);
+        const torusMaterial = new THREE.MeshStandardMaterial({ color: '#9b59b6', roughness: 0.5, metalness: 0.9 });
+        for(let i=0; i<8; i++){
+            const torusNull = new THREE.Object3D();
+            const torus = new THREE.Mesh(torusGeo,torusMaterial)
+            torusNull.rotation.y = THREE.Math.degToRad( 45 * i );
+            torus.position.set(3, 0.5, 0);
+            torusNull.add(torus);
+            this.scene.add(torusNull)
+        }
+
+        /* smallSphere */
+        const smallSphereGeo = new THREE.SphereGeometry( 0.3, 32 , 32 );
+        const smallSphereMaterial = new THREE.MeshStandardMaterial({ color: '#e74c3c', roughness: 0.2, metalness: 0.5 });
+        const smallSphere = new THREE.Mesh(smallSphereGeo,smallSphereMaterial);
+        
+        const smallSphereNull = new THREE.Object3D();
+        smallSphereNull.add(smallSphere)
+        smallSphereNull.name = "smallSphereNull"
+        smallSphere.position.set(3,.5,0)
+        this.scene.add( smallSphereNull )
+
+
+        // 카메라의 타겟 널 생성 //
+        const cameraTargetNull = new THREE.Object3D()
+        const cameraTarget = new THREE.Object3D()
+        cameraTargetNull.add(cameraTarget)
+        cameraTargetNull.name = "cameraTargetNull"
+        cameraTarget.position.set(3, 0.5, 0)
+        this.scene.add(cameraTargetNull)
+
+    }
+
+    _setupCamera(){
+        const w = this.divContainer.clientWidth;
+        const h = this.divContainer.clientHeight;
+        this.camera = new THREE.PerspectiveCamera( 
+            75,         // fov
+            w / h,      // aspect
+            0.1,        // zNear
+            100         // zFar
+        );
+        
+        // const aspect = w/h;
+        // this.camera = new THREE.OrthographicCamera(
+        //     -1 * aspect, 1 * aspect,    // xLeft, xRight
+        //     1, -1,                      // yTop, yBottom
+        //     0.1, 100                    // zNear, zFar
+        // )
+        // this.camera.zoom = .15;
+
+        //this.camera.position.z = 20;
+        this.camera.position.set(7,7,0);
+        this.camera.lookAt(0,0,0);
+
+    }
+
+    _setupLight(){
+        
+        RectAreaLightUniformsLib.init();
+        const rectAreaLight = new THREE.RectAreaLight('white', 10, 3, .5); // 컬러, 강도, 가로크기, 세로크기 
+        rectAreaLight.position.set(0,5,0);
+        rectAreaLight.rotation.x = THREE.Math.degToRad(-90)
+        this.scene.add(rectAreaLight)
+        this.rectAreaLight = rectAreaLight
+
+        this.rectAreaLightHelper = new RectAreaLightHelper(rectAreaLight);
+        this.scene.add(this.rectAreaLightHelper)  
+    }
+
+    _setupControls(){
+        new OrbitControls(this.camera, this.divContainer)
+    }
+}
+
+window.onload =() => new App()
+        
+    </script>
+</body>
+</html>

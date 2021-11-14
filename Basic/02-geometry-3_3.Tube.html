@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title> Curve </title>
+<style>
+    *{ outline: none; margin: 0; }
+    body{ overflow: hidden;}
+    #webgl-container{
+        position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    }
+</style>
+</head>
+<body>
+    <div id="webgl-container"></div>
+
+<!-- <script src="../three.js-master/build/three.min.js"></script> -->
+<!-- <script src="../three.js-master/examples/js/controls/OrbitControls.js"></script> -->
+<script type="module">
+import * as THREE from '../assets/three.module.min.js'
+import {OrbitControls} from '../assets/jsm/OrbitControls.js' // 마우스 컨트롤 가능
+
+class App{
+    constructor(){
+        const divContainer = document.querySelector("#webgl-container");
+        this._divContainer = divContainer;
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true});
+        renderer.setPixelRatio (window.devicePixelRatio)
+        divContainer.appendChild(renderer.domElement)
+        this._renderer = renderer;
+
+        const scene = new THREE.Scene();
+        this._scene = scene;
+
+        this._setupCamera();
+        this._setupLight();
+
+        // this._curve()
+        this._tubeGeo()
+
+        this._setupControls();
+
+        window.onresize = this.resize.bind(this);
+        this.resize()
+
+        requestAnimationFrame(this.render.bind(this));
+    }
+
+    resize(){
+        const width = this._divContainer.clientWidth;
+        const height = this._divContainer.clientHeight;
+
+        this._camera.aspect = width / height;
+        this._camera.updateProjectionMatrix();
+
+        this._renderer.setSize(width, height)
+    }
+
+    render(time){
+        this._renderer.render( this._scene, this._camera);
+        this.update(time)
+        requestAnimationFrame(this.render.bind(this))
+    }
+
+    update(time){
+        time *= 0.001 // ms 를 s 단위로 변경
+    }
+
+    _setupCamera(){
+        const width = this._divContainer.clientWidth;
+        const height = this._divContainer.clientHeight;
+        const camera = new THREE.PerspectiveCamera(
+            75,
+            width / height,
+            0.1,
+            100
+        );
+        camera.position.z = 15;
+        this._camera = camera;
+    }
+
+    _setupLight(){
+        const color = 0xffffff; // 광원 색상
+        const intensity = 1;    // 광원 세기
+        const light = new THREE.DirectionalLight(color, intensity);
+        light.position.set(-1, 2, 4) // 광원 위치
+        this._scene.add(light);
+    }
+
+
+    _curve(){
+        class CustomSinCurve extends THREE.Curve {
+            constructor(scale){
+                super()
+                this.scale = scale;
+            }
+            getPoint(t){
+                const tx = t * 3 - 1.5;
+                const ty = Math.sin( 2 * Math.PI * t );
+                const tz = 0;
+                return new THREE.Vector3(tx, ty, tz).multiplyScalar(this.scale)
+            }
+        }
+        const path = new CustomSinCurve(4);
+
+        const geometry = new THREE.BufferGeometry();
+        const points = path.getPoints(20); //기본 값 5.. 높을수록 부드러운 곡선 
+        geometry.setFromPoints(points);
+
+        const material = new THREE.LineBasicMaterial({ color: 0xffff00 });
+        const line = new THREE.Line( geometry, material );
+
+        this._scene.add(line);
+        // const path = new CustomSinCurve( 10 );
+        // const geometry = new THREE.TubeGeometry( path, 20, 2, 8, false );
+        // const material = new THREE.MeshBasicMaterial( { color: 0x00ff00 } );
+        // const mesh = new THREE.Mesh( geometry, material );
+        // this._scene.add( mesh );
+    }
+
+    _tubeGeo(){
+        class CustomSinCurve extends THREE.Curve {
+            constructor(scale){
+                super()
+                this.scale = scale;
+            }
+            getPoint(t){
+                const tx = t * 3 - 1.5;
+                const ty = Math.sin( 2 * Math.PI * t );
+                const tz = 0;
+                return new THREE.Vector3(tx, ty, tz).multiplyScalar(this.scale)
+            }
+        }
+        const path = new CustomSinCurve(4);
+
+        const geometry = new THREE.TubeGeometry( path );
+
+        const fillMaterial = new THREE.MeshPhongMaterial({ color: 0x515151 });
+        const mesh = new THREE.Mesh(geometry, fillMaterial);
+
+        const lineMaterial = new THREE.LineBasicMaterial({ color: 0xffff00 });
+        const line = new THREE.LineSegments( new THREE.WireframeGeometry(geometry) , lineMaterial );
+
+        const group = new THREE.Group();
+        group.add(mesh)
+        group.add(line)
+
+        this._scene.add(group);
+    }
+
+
+    _setupControls(){
+        new OrbitControls(this._camera, this._divContainer)
+    }
+}
+
+window.onload = function(){
+    new App()
+}
+</script>
+
+</body>
+</html>

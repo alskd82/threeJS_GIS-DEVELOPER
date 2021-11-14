@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title> Material- Points </title>
+<style>
+    *{ outline: none; margin: 0; }
+    body{ overflow: hidden;}
+    #webgl-container{
+        position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    }
+</style>
+</head>
+<body>
+    <div id="webgl-container"></div>
+
+<!-- <script src="../assets/three.min.js"></script> -->
+<script type="module">
+import * as THREE from '../assets/three.module.min.js';
+import {OrbitControls} from '../assets/jsm/OrbitControls.js'
+class App{
+    constructor(){
+        this.divContainer = document.querySelector("#webgl-container");
+        this.renderer = new THREE.WebGLRenderer({ antialias: true });
+        this.renderer.setPixelRatio( window.devicePixelRatio );
+        this.divContainer.appendChild( this.renderer.domElement );
+
+        this.scene = new THREE.Scene();
+
+        this._setupCamera();
+        this._setupLight();
+        this._setupModel();
+        this._setupControls();
+
+        window.onresize = this.resize.bind(this);
+        this.resize()
+
+        requestAnimationFrame(this.render.bind(this));
+    }
+
+    resize(){
+        const w = this.divContainer.clientWidth;
+        const h = this.divContainer.clientHeight;
+
+        this.camera.aspect = w / h;
+        this.camera.updateProjectionMatrix();
+
+        this.renderer.setSize(w, h)
+    }
+
+    render(time){
+        this.renderer.render( this.scene, this.camera )
+        this.update(time)
+        requestAnimationFrame(this.render.bind(this));
+    }
+
+    update(time){
+        time *= 0.001 // ms 를 s 단위로 변경
+    }
+
+    _setupModel(){
+
+        /* x,y,z 좌표를 -5 ~ 5 사이의 수로 저장 */
+        const vertices = [];
+        for(let i=0; i<10000; i++){
+            const x = THREE.Math.randFloatSpread(5);
+            const y = THREE.Math.randFloatSpread(5);
+            const z = THREE.Math.randFloatSpread(5);
+
+            vertices.push(x,y,z)
+        }
+
+        /* 지오메트리의 포지션 속성에 x,y,z 적용 */
+        const geo = new THREE.BufferGeometry();
+        geo.setAttribute(
+            'position',
+            new THREE.Float32BufferAttribute(vertices, 3) // 3은 버텍스의 좌표가 x,y,z 3개의 좌표 정보를 갖고 있다는 것을 의미 
+        );
+
+        /* 커스텀 이미지 로드 */
+        const sprite = new THREE.TextureLoader().load(
+            './assets/img/dot.png'
+        )
+        /* 포인트 미터리얼 생성 */
+        const material = new THREE.PointsMaterial({
+            color: 'tomato', // 포인트의 색상, #, 0x 표현 가능
+            size: .1,  // 크기 
+            sizeAttenuation: true, // 카메라 거리에 따른 원근감을 표현할 것인가
+
+            map: sprite,     // 기본은 사격형인데, 특정 이미지 불러와 처리 
+            alphaTest: .5,  // 커스텀 로드 이미지의 픽셀이 alphaTest 값보다 클테만 렌더링 되게 설정.. 즉 로드된 이미지의 알파 값이 있을 때 투명 영역은 표현안되게 설정하는 것임
+        });
+
+        /* 포인트 오브젝트3D 객체 씬에 추가 */
+        const points = new THREE.Points(geo, material);
+        this.scene.add(points)
+    }
+
+    _setupCamera(){
+        const w = this.divContainer.clientWidth;
+        const h = this.divContainer.clientHeight;
+        this.camera = new THREE.PerspectiveCamera( 75,  w / h,  0.1, 100 );
+        this.camera.position.z = 20;
+    }
+
+    _setupLight(){
+        const color = 0xffffff; // 광원 색상
+        const intensity = 1;    // 광원 세기
+        const light = new THREE.DirectionalLight(color, intensity);
+        light.position.set(-1, 2, 4) // 광원 위치
+        this.scene.add(light);
+    }
+
+    _setupControls(){
+        new OrbitControls(this.camera, this.divContainer)
+    }
+}
+
+window.onload = function(){
+    new App()
+}
+</script>
+
+</body>
+</html>

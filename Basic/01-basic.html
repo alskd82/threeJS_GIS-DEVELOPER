@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title> 01-basic </title>
+<style>
+    *{ outline: none; margin: 0; }
+    body{ overflow: hidden;}
+    #webgl-container{
+        position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    }
+</style>
+</head>
+<body>
+    <div id="webgl-container"></div>
+
+<!-- <script src="../assets/three.min.js"></script> -->
+<script type="module">
+import * as THREE from '../assets/three.module.min.js';
+import {OrbitControls} from '../assets/jsm/OrbitControls.js'
+class App{
+    constructor(){
+        this.divContainer = document.querySelector("#webgl-container");
+        this.renderer = new THREE.WebGLRenderer({ antialias: true });
+        this.renderer.setPixelRatio( window.devicePixelRatio );
+        this.divContainer.appendChild( this.renderer.domElement );
+
+        this.scene = new THREE.Scene();
+
+        this._setupCamera();
+        this._setupLight();
+        this._setupModel();
+        this._setupControls();
+
+        window.onresize = this.resize.bind(this);
+        this.resize()
+
+        requestAnimationFrame(this.render.bind(this));
+    }
+
+    resize(){
+        const w = this.divContainer.clientWidth;
+        const h = this.divContainer.clientHeight;
+        const aspect = w / h;
+        
+        if(this.camera instanceof THREE.PerspectiveCamera){
+            this.camera.aspect = aspect;
+        } else {
+            this.camera.left = -1 * aspect; // xLeft
+            this.camera.right = 1 * aspect; // xRight
+        }
+        this.camera.updateProjectionMatrix();
+
+        this.renderer.setSize(w, h)
+    }
+
+    render(time){
+        this.renderer.render( this.scene, this.camera )
+        this.update(time)
+        requestAnimationFrame(this.render.bind(this));
+    }
+
+    update(time){
+        time *= 0.001 // ms 를 s 단위로 변경
+        this.cube.rotation.x = time;
+        this.cube.rotation.y = time;
+    }
+
+    _setupModel(){
+        const geometry = new THREE.BoxGeometry( 1,1,1 )
+        const material = new THREE.MeshPhongMaterial({ color: 0x44a88 });
+
+        this.cube = new THREE.Mesh(geometry, material);
+
+        this.scene.add(this.cube);     
+    }
+
+    _setupCamera(){
+        const w = this.divContainer.clientWidth;
+        const h = this.divContainer.clientHeight;
+        this.camera = new THREE.PerspectiveCamera( 75,  w / h,  0.1, 100 );
+        this.camera.position.z = 3;
+    }
+
+    _setupLight(){
+        const color = 0xffffff; // 광원 색상
+        const intensity = 1;    // 광원 세기
+        const light = new THREE.DirectionalLight(color, intensity);
+        light.position.set(-1, 2, 4) // 광원 위치
+        this.scene.add(light);
+    }
+
+    _setupControls(){
+        new OrbitControls(this.camera, this.divContainer)
+    }
+}
+
+window.onload =() => new App()
+
+</script>
+
+</body>
+</html>

@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title> 02-geo-2 </title>
+<style>
+    *{ outline: none; margin: 0; }
+    body{ overflow: hidden;}
+    #webgl-container{
+        position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    }
+</style>
+</head>
+<body>
+    <div id="webgl-container"></div>
+
+<!-- <script src="./assets/three.min.js"></script>
+<script src="./assets/js/controls/OrbitControls.js"></script> -->
+<script type="module">
+import * as THREE from '../assets/three.module.min.js'
+import {OrbitControls} from '../assets/jsm/OrbitControls.js' // 마우스 컨트롤 가능
+
+class App{
+    constructor(){
+        const divContainer = document.querySelector("#webgl-container");
+        this._divContainer = divContainer;
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true});
+        renderer.setPixelRatio (window.devicePixelRatio)
+        divContainer.appendChild(renderer.domElement)
+        this._renderer = renderer;
+
+        const scene = new THREE.Scene();
+        this._scene = scene;
+
+        this._setupCamera();
+        this._setupLight();
+
+        // this._circleGeo();
+        // this._coneGeo();
+        // this._cylinderGeo();
+        // this._sphereGeo();
+        // this._ringGeo();
+        // this._planeGeo()
+        // this._torusGeo()
+        this._torusKnotGeo()
+
+        this._setupControls();
+
+        window.onresize = this.resize.bind(this);
+        this.resize()
+
+        requestAnimationFrame(this.render.bind(this));
+    }
+
+    resize(){
+        const width = this._divContainer.clientWidth;
+        const height = this._divContainer.clientHeight;
+
+        this._camera.aspect = width / height;
+        this._camera.updateProjectionMatrix();
+
+        this._renderer.setSize(width, height)
+    }
+
+    render(time){
+        this._renderer.render( this._scene, this._camera);
+        this.update(time)
+        requestAnimationFrame(this.render.bind(this))
+    }
+
+    update(time){
+        time *= 0.001 // ms 를 s 단위로 변경
+    }
+
+    _setupCamera(){
+        const width = this._divContainer.clientWidth;
+        const height = this._divContainer.clientHeight;
+        const camera = new THREE.PerspectiveCamera(
+            75,
+            width / height,
+            0.1,
+            100
+        );
+        camera.position.z = 2;
+        this._camera = camera;
+    }
+
+    _setupLight(){
+        const color = 0xffffff; // 광원 색상
+        const intensity = 1;    // 광원 세기
+        const light = new THREE.DirectionalLight(color, intensity);
+        light.position.set(-1, 2, 4) // 광원 위치
+        this._scene.add(light);
+    }
+
+    _circleGeo(){
+        const circleGeo = new THREE.CircleGeometry( 0.9, 16, 0, Math.PI/2); 
+        const fillMaterial = new THREE.MeshPhongMaterial({ color: 0x515151 });
+        const mesh = new THREE.Mesh(circleGeo, fillMaterial);
+
+        const lineMaterial = new THREE.LineBasicMaterial({ color: 0xffff00 });
+        const line = new THREE.LineSegments( new THREE.WireframeGeometry(circleGeo) , lineMaterial );
+
+        const group = new THREE.Group();
+        group.add(mesh)
+        group.add(line)
+
+        this._scene.add(group);
+    }
+
+    _coneGeo(){
+        const coneGeo = new THREE.ConeGeometry(); 
+        const fillMaterial = new THREE.MeshPhongMaterial({ color: 0x515151 });
+        const mesh = new THREE.Mesh(coneGeo, fillMaterial);
+
+        const lineMaterial = new THREE.LineBasicMaterial({ color: 0xffff00 });
+        const line = new THREE.LineSegments( new THREE.WireframeGeometry(coneGeo) , lineMaterial );
+
+        const group = new THREE.Group();
+        group.add(mesh)
+        group.add(line)
+
+        this._scene.add(group);
+    }
+
+    _cylinderGeo(){
+        const cylinderGeo = new THREE.CylinderGeometry(); 
+        const fillMaterial = new THREE.MeshPhongMaterial({ color: 0x515151 });
+        const mesh = new THREE.Mesh(cylinderGeo, fillMaterial);
+
+        const lineMaterial = new THREE.LineBasicMaterial({ color: 0xffff00 });
+        const line = new THREE.LineSegments( new THREE.WireframeGeometry(cylinderGeo) , lineMaterial );
+
+        const group = new THREE.Group();
+        group.add(mesh)
+        group.add(line)
+
+        this._scene.add(group);
+    }
+
+    _sphereGeo(){
+        const sphereGeo = new THREE.SphereGeometry(); 
+        const fillMaterial = new THREE.MeshPhongMaterial({ color: 0x515151 });
+        const mesh = new THREE.Mesh(sphereGeo, fillMaterial);
+
+        const lineMaterial = new THREE.LineBasicMaterial({ color: 0xffff00 });
+        const line = new THREE.LineSegments( new THREE.WireframeGeometry(sphereGeo) , lineMaterial );
+
+        const group = new THREE.Group();
+        group.add(mesh)
+        group.add(line)
+
+        this._scene.add(group);
+    }
+
+    _ringGeo(){
+        const ringGeo = new THREE.RingGeometry(); 
+        const fillMaterial = new THREE.MeshPhongMaterial({ color: 0x515151 });
+        const mesh = new THREE.Mesh(ringGeo, fillMaterial);
+
+        const lineMaterial = new THREE.LineBasicMaterial({ color: 0xffff00 });
+        const line = new THREE.LineSegments( new THREE.WireframeGeometry(ringGeo) , lineMaterial );
+
+        const group = new THREE.Group();
+        group.add(mesh)
+        group.add(line)
+
+        this._scene.add(group);
+    }
+
+    _planeGeo(){
+        const planeGeo = new THREE.PlaneGeometry(); 
+        const fillMaterial = new THREE.MeshPhongMaterial({ color: 0x515151 });
+        const mesh = new THREE.Mesh(planeGeo, fillMaterial);
+
+        const lineMaterial = new THREE.LineBasicMaterial({ color: 0xffff00 });
+        const line = new THREE.LineSegments( new THREE.WireframeGeometry(planeGeo) , lineMaterial );
+
+        const group = new THREE.Group();
+        group.add(mesh)
+        group.add(line)
+
+        this._scene.add(group);
+    }
+
+    _torusGeo(){
+        const torusGeo = new THREE.TorusGeometry(); 
+        const fillMaterial = new THREE.MeshPhongMaterial({ color: 0x515151 });
+        const mesh = new THREE.Mesh(torusGeo, fillMaterial);
+
+        const lineMaterial = new THREE.LineBasicMaterial({ color: 0xffff00 });
+        const line = new THREE.LineSegments( new THREE.WireframeGeometry(torusGeo) , lineMaterial );
+
+        const group = new THREE.Group();
+        group.add(mesh)
+        group.add(line)
+
+        this._scene.add(group);
+    }
+
+    _torusKnotGeo(){
+        const torusknotGeo = new THREE.TorusKnotGeometry(); 
+        const fillMaterial = new THREE.MeshPhongMaterial({ color: 0x515151 });
+        const mesh = new THREE.Mesh(torusknotGeo, fillMaterial);
+
+        const lineMaterial = new THREE.LineBasicMaterial({ color: 0xffff00 });
+        const line = new THREE.LineSegments( new THREE.WireframeGeometry(torusknotGeo) , lineMaterial );
+
+        const group = new THREE.Group();
+        group.add(mesh)
+        group.add(line)
+
+        this._scene.add(group);
+    }
+
+    _setupControls(){
+        new OrbitControls(this._camera, this._divContainer)
+    }
+}
+
+window.onload = function(){
+    new App()
+}
+</script>
+
+</body>
+</html>
